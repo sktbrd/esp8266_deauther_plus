@@ -16,6 +16,8 @@ extern "C" {
 #include "Attack.h"
 #include "DisplayUI.h"
 #include "led.h"
+// Captive Portal Attack
+#include "CaptivePortalAttack.h"
 
 extern Names names;
 extern SSIDs ssids;

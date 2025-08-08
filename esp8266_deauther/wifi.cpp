@@ -441,8 +441,24 @@ namespace wifi {
             WiFi.persistent(false);
             WiFi.disconnect(true);
             wifi_set_opmode(STATION_MODE);
+            server.stop();  // Stop the web server to free port 80
+            dns.stop();     // Stop the DNS server
             prntln(W_STOPPED_AP);
             mode = wifi_mode_t::st;
+        }
+    }
+
+    void disable() {
+        // Completely disable wifi module for captive portal
+        if (mode != wifi_mode_t::off) {
+            wifi_promiscuous_enable(0);
+            WiFi.persistent(false);
+            WiFi.disconnect(true);
+            WiFi.softAPdisconnect(true);
+            server.stop();  // Stop the web server
+            dns.stop();     // Stop the DNS server
+            prntln(W_STOPPED_AP);
+            mode = wifi_mode_t::off;
         }
     }
 

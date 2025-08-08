@@ -201,6 +201,7 @@ const char CLI_HELP_COMMENT[] PROGMEM = "// <comments>";
 const char CLI_HELP_SEND_DEAUTH[] PROGMEM = "send deauth <apMac> <stMac> <rason> <channel>";
 const char CLI_HELP_SEND_BEACON[] PROGMEM = "send beacon <mac> <ssid> <ch> [wpa2]";
 const char CLI_HELP_SEND_PROBE[] PROGMEM = "send probe <mac> <ssid> <ch>";
+const char CLI_HELP_CAPTIVE[] PROGMEM = "captive <start> <ssid> | <stop>";
 const char CLI_HELP_LED_A[] PROGMEM = "led <r> <g> <b>";
 const char CLI_HELP_LED_B[] PROGMEM = "led <#rrggbb>";
 const char CLI_HELP_DRAW[] PROGMEM = "draw";
@@ -387,6 +388,7 @@ const char D_RANDOM_MODE[] PROGMEM = "RANDOM MODE";
 const char D_DEAUTH[] PROGMEM = "DEAUTH";
 const char D_BEACON[] PROGMEM = "BEACON";
 const char D_PROBE[] PROGMEM = "PROBE";
+const char D_CAPTIVE[] PROGMEM = "CAPTIVE";
 const char D_START_ATTACK[] PROGMEM = "START";
 const char D_STOP_ATTACK[] PROGMEM = "STOP";
 

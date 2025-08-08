@@ -23,6 +23,12 @@ void CLI::load() {
 
     checkFile(execPath, defaultValue);
     execFile(execPath);
+
+    // Captive Portal CLI command
+    list->add("captive");
+    // Usage: captive start <ssid> | stop
+    // This is a minimal registration, you may want to use your command system's push_back/CMD macro if available
+    // For demonstration, we add a handler in runCommand below
 }
 
 void CLI::load(String filepath) {
@@ -283,6 +289,7 @@ void CLI::runCommand(String input) {
         prntln(CLI_HELP_SEND_DEAUTH);
         prntln(CLI_HELP_SEND_BEACON);
         prntln(CLI_HELP_SEND_PROBE);
+        prntln(CLI_HELP_CAPTIVE);
         prntln(CLI_HELP_LED_A);
         prntln(CLI_HELP_LED_B);
         prntln(CLI_HELP_DRAW);
@@ -1262,6 +1269,25 @@ void CLI::runCommand(String input) {
         }
     }
 
+    // ===== CAPTIVE PORTAL ===== //
+    else if (eqlsCMD(0, "captive")) {
+        if (list->size() < 2) {
+            prntln("Usage: captive start <ssid> | stop");
+            return;
+        }
+        if (eqlsCMD(1, "start")) {
+            if (list->size() < 3) {
+                prntln("Error: missing SSID");
+                return;
+            }
+            String ssid = list->get(2);
+            attack.startCaptivePortal(ssid);
+        } else if (eqlsCMD(1, "stop")) {
+            attack.stopCaptivePortal();
+        } else {
+            prntln("Unknown captive command");
+        }
+    }
     // ===== NOT FOUND ===== //
     else {
         prnt(CLI_ERROR_NOT_FOUND_A);

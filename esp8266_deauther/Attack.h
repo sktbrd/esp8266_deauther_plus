@@ -13,6 +13,15 @@ extern "C" {
 #include "SSIDs.h"
 #include "Scan.h"
 
+enum ATTACK_MODE {
+    ATTACK_NONE,
+    ATTACK_DEAUTH,
+    ATTACK_PROBE,
+    ATTACK_BEACON,
+    ATTACK_RANDOM,
+    ATTACK_CAPTIVE_PORTAL
+};
+
 extern SSIDs ssids;
 extern Accesspoints accesspoints;
 extern Stations     stations;
@@ -68,6 +77,11 @@ class Attack {
         uint32_t getProbeMaxPkts();
 
         uint32_t getPacketRate();
+        
+        // Captive Portal methods
+        void startCaptivePortal(String ssid = "Free_WiFi");
+        void stopCaptivePortal();
+        bool isCaptivePortalRunning();
 
     private:
         void deauthUpdate();
@@ -92,6 +106,10 @@ class Attack {
         AttackType beacon;
         AttackType probe;
         bool deauthAll = false;
+        
+        // Captive Portal support
+        bool captivePortalActive = false;
+        String captivePortalSSID = "Free_WiFi";
 
         uint32_t deauthPkts = 0;
         uint32_t beaconPkts = 0;

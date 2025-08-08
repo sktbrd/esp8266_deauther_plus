@@ -48,8 +48,8 @@ extern String right(String a, int len);
 extern String leftRight(String a, String b, int len);
 extern String replaceUtf8(String str, String r);
 
-const char D_INTRO_0[] PROGMEM = "ESP8266 Deauther";
-const char D_INTRO_1[] PROGMEM = "by @Spacehuhn";
+const char D_INTRO_0[] PROGMEM = "Skatehive Whatch";
+const char D_INTRO_1[] PROGMEM = "by @xvlad";
 const char D_INTRO_2[] PROGMEM = DISPLAY_TEXT;
 const char D_RESETTING[] PROGMEM = "Resetting...";
 const char D_SCANNING_0[] PROGMEM = "> Scanning";
@@ -148,6 +148,7 @@ class DisplayUI {
         bool beaconSelected = false;
         bool deauthSelected = false;
         bool probeSelected  = false;
+        bool captivePortalSelected = false;
 
         // menus
         Menu* currentMenu;

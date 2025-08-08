@@ -6,7 +6,7 @@
 #define DEBUG_PORT Serial
 #define DEBUG_BAUD 115200
 
-#define DEFAULT_ESP8266
+// #define DEFAULT_ESP8266
 
 // #define NODEMCU
 // #define WEMOS_D1_MINI
@@ -40,7 +40,7 @@
 // #define DSTIKE_DEAUTHER_MOSTER_V5
 // #define DSTIKE_USB_DEAUTHER
 // #define DSTIKE_USB_DEAUTHER_V2
-// #define DSTIKE_DEAUTHER_WATCH
+#define DSTIKE_DEAUTHER_WATCH
 // #define DSTIKE_DEAUTHER_WATCH_V2
 // #define DSTIKE_DEAUTHER_MINI
 // #define DSTIKE_DEAUTHER_MINI_EVO
@@ -165,7 +165,7 @@
 // ===== DISPLAY ===== //
   #define SH1106_I2C
   #define FLIP_DIPLAY true
-  #define DISPLAY_TEXT "Hardware by DSTIKE"
+  #define DISPLAY_TEXT "for learning"
 
 // ===== BUTTONS ===== //
   #define BUTTON_UP 12

@@ -15,6 +15,7 @@ namespace wifi {
     void startAP();
 
     void stopAP();
+    void disable();  // Completely disable wifi module
     void resumeAP();
 
     void update();

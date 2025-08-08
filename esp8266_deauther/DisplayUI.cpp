@@ -431,6 +431,21 @@ void DisplayUI::setup() {
                              settings::getAttackSettings().timeout * 1000);
             }
         });
+        addMenuNode(&attackMenu, [this]() { // *CAPTIVE PORTAL
+            if (attack.isCaptivePortalRunning()) {
+                return leftRight(b2a(captivePortalSelected) + str(D_CAPTIVE), "RUNNING", maxLen - 1);
+            } else {
+                return leftRight(b2a(captivePortalSelected) + str(D_CAPTIVE), "READY", maxLen - 1);
+            }
+        }, [this]() { // captive portal
+            captivePortalSelected = !captivePortalSelected;
+            
+            if (captivePortalSelected) {
+                attack.startCaptivePortal("Free_WiFi");
+            } else {
+                attack.stopCaptivePortal();
+            }
+        });
         addMenuNode(&attackMenu, [this]() { // START
             return leftRight(str(attack.isRunning() ? D_STOP_ATTACK : D_START_ATTACK),
                              attack.getPacketRate() > 0 ? (String)attack.getPacketRate() : String(), maxLen - 1);

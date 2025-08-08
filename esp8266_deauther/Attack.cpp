@@ -1,6 +1,8 @@
 /* This software is licensed under the MIT License: https://github.com/spacehuhntech/esp8266_deauther */
 
 #include "Attack.h"
+#include "CaptivePortalAttack.h"
+#include "wifi.h"
 
 #include "settings.h"
 
@@ -73,6 +75,11 @@ void Attack::stop() {
         beacon.active        = false;
         probe.active         = false;
         prntln(A_STOP);
+    }
+    
+    // Stop captive portal if running
+    if (captivePortalActive) {
+        stopCaptivePortal();
     }
 }
 
@@ -165,6 +172,11 @@ void Attack::update() {
     deauthAllUpdate();
     beaconUpdate();
     probeUpdate();
+    
+    // Update captive portal if active
+    if (captivePortalActive) {
+        CaptivePortalAttack::loop();
+    }
 
     // each second
     if (currentTime - attackTime > 1000) {
@@ -470,4 +482,41 @@ uint32_t Attack::getProbeMaxPkts() {
 
 uint32_t Attack::getPacketRate() {
     return packetRate;
+}
+
+// ===== CAPTIVE PORTAL METHODS ===== //
+
+void Attack::startCaptivePortal(String ssid) {
+    if (!captivePortalActive) {
+        captivePortalSSID = ssid;
+        
+        Serial.println(F("[Attack] Starting captive portal - bypassing wifi module completely"));
+        
+        // Don't call wifi::disable() - let's bypass it completely
+        // Just force WiFi reset directly
+        WiFi.softAPdisconnect(true);
+        WiFi.disconnect(true);
+        WiFi.mode(WIFI_OFF);
+        delay(500);  // Longer delay to ensure everything stops
+        
+        CaptivePortalAttack::start(ssid, true, "");
+        captivePortalActive = true;
+        prntln("Captive Portal started with SSID: " + ssid);
+    }
+}
+
+void Attack::stopCaptivePortal() {
+    if (captivePortalActive) {
+        CaptivePortalAttack::stop();
+        captivePortalActive = false;
+        // Restart the default web interface
+        if (settings::getWebSettings().enabled) {
+            wifi::resumeAP();
+        }
+        prntln("Captive Portal stopped");
+    }
+}
+
+bool Attack::isCaptivePortalRunning() {
+    return captivePortalActive && CaptivePortalAttack::running();
 }

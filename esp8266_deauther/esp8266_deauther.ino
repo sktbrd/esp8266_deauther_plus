@@ -3,10 +3,11 @@
    https://github.com/spacehuhntech/esp8266_deauther
    ===================== */
 
+// Please follow this tutorial:
+// https://github.com/spacehuhn/esp8266_deauther/wiki/Installation#compiling-using-arduino-ide
+// And be sure to have the right board selected
+
 extern "C" {
-    // Please follow this tutorial:
-    // https://github.com/spacehuhn/esp8266_deauther/wiki/Installation#compiling-using-arduino-ide
-    // And be sure to have the right board selected
   #include "user_interface.h"
 }
 
@@ -34,6 +35,9 @@ extern "C" {
 
 #include "led.h"
 
+// [CAPTIVE] add our module header
+#include "CaptivePortalAttack.h"
+
 // Run-Time Variables //
 Names names;
 SSIDs ssids;
@@ -54,143 +58,148 @@ uint32_t currentTime  = 0;
 bool booted = false;
 
 void setup() {
-    // for random generator
-    randomSeed(os_random());
+  // for random generator
+  randomSeed(os_random());
 
-    // start serial
-    Serial.begin(115200);
-    Serial.println();
+  // start serial
+  Serial.begin(115200);
+  Serial.println();
 
-    // start SPIFFS
-    prnt(SETUP_MOUNT_SPIFFS);
-    // bool spiffsError = !LittleFS.begin();
-    LittleFS.begin();
-    prntln(/*spiffsError ? SETUP_ERROR : */ SETUP_OK);
+  // start SPIFFS
+  prnt(SETUP_MOUNT_SPIFFS);
+  // bool spiffsError = !LittleFS.begin();
+  LittleFS.begin();
+  prntln(/*spiffsError ? SETUP_ERROR : */ SETUP_OK);
 
-    // Start EEPROM
-    EEPROMHelper::begin(EEPROM_SIZE);
+  // Start EEPROM
+  EEPROMHelper::begin(EEPROM_SIZE);
 
 #ifdef FORMAT_SPIFFS
-    prnt(SETUP_FORMAT_SPIFFS);
-    LittleFS.format();
-    prntln(SETUP_OK);
+  prnt(SETUP_FORMAT_SPIFFS);
+  LittleFS.format();
+  prntln(SETUP_OK);
 #endif // ifdef FORMAT_SPIFFS
 
 #ifdef FORMAT_EEPROM
+  prnt(SETUP_FORMAT_EEPROM);
+  EEPROMHelper::format(EEPROM_SIZE);
+  prntln(SETUP_OK);
+#endif // ifdef FORMAT_EEPROM
+
+  // Format SPIFFS when in boot-loop
+  if (/*spiffsError || */ !EEPROMHelper::checkBootNum(BOOT_COUNTER_ADDR)) {
+    prnt(SETUP_FORMAT_SPIFFS);
+    LittleFS.format();
+    prntln(SETUP_OK);
+
     prnt(SETUP_FORMAT_EEPROM);
     EEPROMHelper::format(EEPROM_SIZE);
     prntln(SETUP_OK);
-#endif // ifdef FORMAT_EEPROM
 
-    // Format SPIFFS when in boot-loop
-    if (/*spiffsError || */ !EEPROMHelper::checkBootNum(BOOT_COUNTER_ADDR)) {
-        prnt(SETUP_FORMAT_SPIFFS);
-        LittleFS.format();
-        prntln(SETUP_OK);
+    EEPROMHelper::resetBootNum(BOOT_COUNTER_ADDR);
+  }
 
-        prnt(SETUP_FORMAT_EEPROM);
-        EEPROMHelper::format(EEPROM_SIZE);
-        prntln(SETUP_OK);
+  // get time
+  currentTime = millis();
 
-        EEPROMHelper::resetBootNum(BOOT_COUNTER_ADDR);
-    }
+  // load settings
+#ifndef RESET_SETTINGS
+  settings::load();
+#else
+  settings::reset();
+  settings::save();
+#endif
 
-    // get time
-    currentTime = millis();
+  wifi::begin();
+  wifi_set_promiscuous_rx_cb([](uint8_t* buf, uint16_t len) {
+    scan.sniffer(buf, len);
+  });
 
-    // load settings
-    #ifndef RESET_SETTINGS
-    settings::load();
-    #else // ifndef RESET_SETTINGS
-    settings::reset();
-    settings::save();
-    #endif // ifndef RESET_SETTINGS
+  // start display
+  if (settings::getDisplaySettings().enabled) {
+    displayUI.setup();
+    displayUI.mode = DISPLAY_MODE::INTRO;
+  }
 
-    wifi::begin();
-    wifi_set_promiscuous_rx_cb([](uint8_t* buf, uint16_t len) {
-        scan.sniffer(buf, len);
-    });
+  // load everything else
+  names.load();
+  ssids.load();
+  cli.load();
 
-    // start display
-    if (settings::getDisplaySettings().enabled) {
-        displayUI.setup();
-        displayUI.mode = DISPLAY_MODE::INTRO;
-    }
+  // create scan.json
+  scan.setup();
 
-    // load everything else
-    names.load();
-    ssids.load();
-    cli.load();
+  // dis/enable serial command interface
+  if (settings::getCLISettings().enabled) {
+    cli.enable();
+  } else {
+    prntln(SETUP_SERIAL_WARNING);
+    Serial.flush();
+    Serial.end();
+  }
 
-    // create scan.json
-    scan.setup();
+  // start access point/web interface
+  if (settings::getWebSettings().enabled) wifi::startAP();
 
-    // dis/enable serial command interface
-    if (settings::getCLISettings().enabled) {
-        cli.enable();
-    } else {
-        prntln(SETUP_SERIAL_WARNING);
-        Serial.flush();
-        Serial.end();
-    }
+  // STARTED
+  prntln(SETUP_STARTED);
 
-    // start access point/web interface
-    if (settings::getWebSettings().enabled) wifi::startAP();
+  // version
+  prntln(DEAUTHER_VERSION);
 
-    // STARTED
-    prntln(SETUP_STARTED);
+  // setup LED
+  led::setup();
 
-    // version
-    prntln(DEAUTHER_VERSION);
-
-    // setup LED
-    led::setup();
-
-    // setup reset button
-    resetButton = new ButtonPullup(RESET_BUTTON);
+  // setup reset button
+  resetButton = new ButtonPullup(RESET_BUTTON);
 }
 
 void loop() {
-    currentTime = millis();
+  currentTime = millis();
 
-    led::update();   // update LED color
+  led::update();   // update LED color
+  
+  // Skip wifi::update() when captive portal is active to avoid conflicts
+  if (!attack.isCaptivePortalRunning()) {
     wifi::update();  // manage access point
-    attack.update(); // run attacks
-    displayUI.update();
-    cli.update();    // read and run serial input
-    scan.update();   // run scan
-    ssids.update();  // run random mode, if enabled
+  }
+  
+  attack.update(); // run attacks (includes captive portal)
+  displayUI.update();
+  cli.update();    // read and run serial input
+  scan.update();   // run scan
+  ssids.update();  // run random mode, if enabled
 
-    // auto-save
-    if (settings::getAutosaveSettings().enabled
-        && (currentTime - autosaveTime > settings::getAutosaveSettings().time)) {
-        autosaveTime = currentTime;
-        names.save(false);
-        ssids.save(false);
-        settings::save(false);
-    }
+  // auto-save
+  if (settings::getAutosaveSettings().enabled
+      && (currentTime - autosaveTime > settings::getAutosaveSettings().time)) {
+    autosaveTime = currentTime;
+    names.save(false);
+    ssids.save(false);
+    settings::save(false);
+  }
 
-    if (!booted) {
-        booted = true;
-        EEPROMHelper::resetBootNum(BOOT_COUNTER_ADDR);
+  if (!booted) {
+    booted = true;
+    EEPROMHelper::resetBootNum(BOOT_COUNTER_ADDR);
 #ifdef HIGHLIGHT_LED
-        displayUI.setupLED();
-#endif // ifdef HIGHLIGHT_LED
-    }
+    displayUI.setupLED();
+#endif
+  }
 
-    resetButton->update();
-    if (resetButton->holding(5000)) {
-        led::setMode(LED_MODE::SCAN);
-        DISPLAY_MODE _mode = displayUI.mode;
-        displayUI.mode = DISPLAY_MODE::RESETTING;
-        displayUI.update(true);
+  resetButton->update();
+  if (resetButton->holding(5000)) {
+    led::setMode(LED_MODE::SCAN);
+    DISPLAY_MODE _mode = displayUI.mode;
+    displayUI.mode = DISPLAY_MODE::RESETTING;
+    displayUI.update(true);
 
-        settings::reset();
-        settings::save(true);
+    settings::reset();
+    settings::save(true);
 
-        delay(2000);
+    delay(2000);
 
-        led::setMode(LED_MODE::IDLE);
-        displayUI.mode = _mode;
-    }
+    led::setMode(LED_MODE::IDLE);
+    displayUI.mode = _mode;
+  }
 }
